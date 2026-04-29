@@ -10,7 +10,6 @@ app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
 
 const allowedOrigins = [
-    '*',
     'http://localhost:4321',
     'https://arcentra-web.vercel.app'
 ];
@@ -30,6 +29,8 @@ const corsOptions = {
     credentials: true
 };
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
 
 // Rutas
 app.use("/api/send-mail", mailRoutes);
