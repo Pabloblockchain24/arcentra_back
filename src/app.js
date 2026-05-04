@@ -2,7 +2,8 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
-import mailRoutes from "./routes/mail.routes.js";
+import formRoutes from "./routes/form.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express()
 app.use(express.json())
@@ -10,8 +11,11 @@ app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
 
 const allowedOrigins = [
+    "*",
     'http://localhost:4321',
-    'https://arcentra-web.vercel.app'
+    'http://localhost:5173',
+    'https://arcentra-web.vercel.app',
+    'https://arcentra-portal.vercel.app'
 ];
 
 const corsOptions = {
@@ -31,6 +35,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Rutas
-app.use("/api/send-mail", mailRoutes);
+app.use("/api/send-mail", formRoutes);
+app.use("/api/auth", authRoutes);
+
 
 export default app; 
