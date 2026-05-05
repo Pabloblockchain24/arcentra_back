@@ -1,18 +1,9 @@
-import serverless from "serverless-http";
-import app from "../src/app.js";
-import { connectDB } from "../src/db.js";
+import app from "./src/app.js"
+import config from "./src/config/config.js"
 
-// ⚠️ importante: manejar conexión solo una vez
-let isConnected = false;
+app.listen(config.port, () => console.log(`🚀 Server running on port ${config.port}`))
 
-async function connect() {
-  if (!isConnected) {
-    await connectDB();
-    isConnected = true;
-  }
-}
+import { connectDB } from "./src/db.js"
+connectDB()
 
-export default async function handler(req, res) {
-  await connect();
-  return serverless(app)(req, res);
-}
+export default app

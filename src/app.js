@@ -11,6 +11,7 @@ app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
 
 const allowedOrigins = [
+    '*',
     'https://arcentra-web.vercel.app',
     'https://arcentra-portal.vercel.app'
 ];
@@ -20,16 +21,16 @@ const corsOptions = {
         if (!origin) return callback(null, true);
 
         if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
         }
-
-        // 👇 en vez de error, responde false
-        return callback(null, false);
     },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     credentials: true
 };
-
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors(corsOptions));
 
 
 // Rutas
