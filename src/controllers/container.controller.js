@@ -2,34 +2,37 @@ import Container from "../models/container.model.js";
 import Client from "../models/client.model.js";
 import Event from "../models/event.model.js";
 import Billing from "../models/billing.model.js";
+import mongoose from "mongoose";
 
 export const getContainerDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const { clienteId, tipoUsuario } = req.user;
-    let container = null;
+    const containerDoc = await Container
+      .findOne({ unidad: id })
+      .populate("clienteId", "nombre");
 
-    // 🔍 1. Buscar container
-      container = await Container.findOne({ unidad: id }).populate("clienteId", "nombre");
-
-    if (!container) {
+    if (!containerDoc) {
       return res.status(404).json({ error: "Container no encontrado" });
     }
 
     // 🔐 2. Seguridad (multi-tenant)
     if (
       tipoUsuario === "cliente" &&
-      container.clienteId._id.toString() !== clienteId
+      containerDoc.clienteId._id.toString() !== clienteId
     ) {
       return res.status(403).json({ error: "No autorizado" });
     }
+    
+        const container = containerDoc.toObject();
+    delete container.deposito;
 
 const events = await Event.find({
-  containerId: container._id   // 🔥 AQUÍ ESTÁ LA CLAVE
+  containerId: containerDoc._id   // 🔥 AQUÍ ESTÁ LA CLAVE
 }).sort({ fecha: 1 });
 
 const billing = await Billing.find({
-  containerId: container._id   // 🔥 MISMO AQUÍ
+  containerId: containerDoc._id   // 🔥 MISMO AQUÍ
 });
 
     // 🧠 5. Estado calculado (🔥)
@@ -53,18 +56,72 @@ const billing = await Billing.find({
 
 export const getContainers = async (req, res) => {
   try {
-    const { clienteId, rol } = req.user;
+    const { clienteId, tipoUsuario } = req.user;
 
-    let query = {};
+    // 🔥 CONVERSIÓN CLAVE
+    const clienteObjectId = new mongoose.Types.ObjectId(clienteId);
 
-    // 👇 Cliente normal → solo ve lo suyo
-    if (rol === "cliente") {
-      query.clienteId = clienteId;
+    let query = {
+      isDeleted: { $ne: true }
+    };
+
+    // 🔐 FILTRO REAL (ahora sí funciona)
+    if (tipoUsuario === "cliente") {
+      query.clienteId = clienteObjectId;
     }
 
-    // 👇 Admin → ve todo
-    const containers = await Container.find(query)
+    // 📦 containers
+    const containersDocs = await Container
+      .find(query)
+      .populate("clienteId", "nombre")
       .sort({ createdAt: -1 });
+
+    const containerIds = containersDocs.map(c => c._id);
+
+    // 📍 events
+    const events = await Event.find({
+      containerId: { $in: containerIds }
+    }).sort({ fecha: 1 });
+
+    // 💰 billing
+    const billing = await Billing.find({
+      containerId: { $in: containerIds }
+    });
+
+    // 🧠 maps
+    const eventsMap = {};
+    const billingMap = {};
+
+    events.forEach(e => {
+      const key = e.containerId.toString();
+      if (!eventsMap[key]) eventsMap[key] = [];
+      eventsMap[key].push(e);
+    });
+
+    billing.forEach(b => {
+      const key = b.containerId.toString();
+      if (!billingMap[key]) billingMap[key] = [];
+      billingMap[key].push(b);
+    });
+
+    // 🔥 response
+    const containers = containersDocs.map(doc => {
+      const obj = doc.toObject();
+      delete obj.deposito;
+
+      const id = doc._id.toString();
+
+      const containerEvents = eventsMap[id] || [];
+      const containerBilling = billingMap[id] || [];
+
+      return {
+        ...obj,
+        events: containerEvents,
+        billing: containerBilling,
+        estado: calcularEstado(containerEvents),
+        resumenFinanciero: calcularFinanzas(containerBilling)
+      };
+    });
 
     res.json(containers);
 
@@ -95,6 +152,76 @@ export const createContainer = async (req, res) => {
   }
 };
 
+export const updateContainer = async (req, res) => {
+
+  try {
+    const { id } = req.params; // unidad
+    const { clienteId, tipoUsuario } = req.user;
+    const updates = req.body;
+
+    // 🔍 1. Buscar container por unidad
+    const container = await Container.findOne({ unidad: id });
+
+    if (!container) {
+      return res.status(404).json({ error: "Container no encontrado" });
+    }
+
+    // 🔐 2. Seguridad
+    if (
+      tipoUsuario === "cliente" &&
+      container.clienteId.toString() !== clienteId
+    ) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    // ⚠️ 3. Evitar cambios críticos
+    delete updates._id;
+    delete updates.clienteId;
+
+    // 🛠 4. Actualizar
+    const updatedContainer = await Container.findByIdAndUpdate(
+      container._id,
+      updates,
+      { new: true }
+    );
+
+    res.json(updatedContainer);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const deleteContainer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { clienteId, tipoUsuario } = req.user;
+
+    // 🔍 1. Buscar container
+    const container = await Container.findOne({ unidad: id });
+
+    if (!container) {
+      return res.status(404).json({ error: "Container no encontrado" });
+    }
+
+    // 🔐 2. Seguridad
+    if (
+      tipoUsuario === "cliente" &&
+      container.clienteId.toString() !== clienteId
+    ) {
+      return res.status(403).json({ error: "No autorizado" });
+    }
+
+    // 🗑 3. Soft delete
+    container.isDeleted = true;
+    await container.save();
+
+    res.json({ message: "Container eliminado correctamente" });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 
 const calcularEstado = (events) => {

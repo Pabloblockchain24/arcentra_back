@@ -29,15 +29,14 @@ const eventSchema = new mongoose.Schema({
   },
 
   hora: String,
-
+  proveedor: String,
   chofer: String,
-
-  guiaTransporte: String,
+  patente: String,
 
   estado: {
     type: String,
-    enum: ["pendiente", "completado", "fallido"],
-    default: "pendiente",
+    enum: ["programado", "completado", "fallido"],
+    default: "programado",
     index: true
   },
 

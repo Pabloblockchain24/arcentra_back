@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const containerSchema = new mongoose.Schema({
 unidad: { type: String, required: true },
-    referencia: String,
+    referencia: { type: String, required: true },
 
   clienteId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -10,12 +10,12 @@ unidad: { type: String, required: true },
     required: true,
   },
 
-  nave: String,
-  eta: Date,
+  nave:  { type: String, required: true },
+  eta: { type: Date, required: true },
   fechaDescarga: Date,
 
-  tipoContenedor: String,
-  diasLibres: Number,
+  tipoContenedor: { type: String, required: true },
+  diasLibres: { type: Number, required: true },
 
   operacion: {
     type: String,
@@ -27,7 +27,8 @@ unidad: { type: String, required: true },
   tarifa: Number,
 
   lugarDevolucion: String,
-  deposito: String
+  deposito: String,
+  guiaTransporte: String
 
 }, {
   timestamps: true

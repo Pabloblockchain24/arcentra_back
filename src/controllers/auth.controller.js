@@ -5,38 +5,6 @@ import config from "../config/config.js"
 import { createAccessToken } from "../libs/jwt.js"
 import clientService from "../models/client.model.js";
 
-export const register = async (req, res) => {
-  try {
-    const { clienteNombre, password, tipoUsuario, ...data } = req.body;
-
-    let clienteId = null;
-
-    // 🔥 Solo si es usuario tipo cliente
-    if (tipoUsuario === "cliente") {
-      const client = await clientService.findOne({ nombre: clienteNombre });
-
-      if (!client) {
-        return res.status(404).json({ error: "Cliente no encontrado" });
-      }
-
-      clienteId = client._id;
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await userService.create({
-      ...data,
-      password: hashedPassword,
-      tipoUsuario,
-      clienteId
-    });
-
-    res.status(201).json(user);
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
