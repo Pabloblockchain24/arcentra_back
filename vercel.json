@@ -1,21 +1,9 @@
 {
-    "version": 2,
-    "builds": [
-        {
-            "src": "./index.js",
-            "use": "@vercel/node"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "/",
-            "methods": ["GET","POST","PUT","DELETE","PATCH","OPTIONS"],
-            "headers": {
-                "Access-Control-Allow-Origin": "https://arcentra-portal.vercel.app",
-                "Access-Control-Allow-Credentials": "true"
-            }
-        }
-    ]
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ]
 }
-

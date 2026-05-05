@@ -20,16 +20,17 @@ const corsOptions = {
         if (!origin) return callback(null, true);
 
         if (allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
+            return callback(null, true);
         }
+
+        // 👇 en vez de error, responde false
+        return callback(null, false);
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
     credentials: true
 };
-app.use(cors(corsOptions));
+
+app.use(cors({ origin: true, credentials: true }));
+app.options("*", cors());
 
 // Rutas
 app.use("/api/send-mail", formRoutes);
