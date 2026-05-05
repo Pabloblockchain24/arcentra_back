@@ -11,9 +11,6 @@ app.use(express.urlencoded({extended:true}))
 app.use(cookieParser())
 
 const allowedOrigins = [
-    "*",
-    'http://localhost:4321',
-    'http://localhost:5173',
     'https://arcentra-web.vercel.app',
     'https://arcentra-portal.vercel.app'
 ];
