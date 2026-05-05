@@ -30,7 +30,7 @@ const corsOptions = {
 };
 
 app.use(cors({ origin: true, credentials: true }));
-app.options("*", cors());
+
 
 // Rutas
 app.use("/api/send-mail", formRoutes);
