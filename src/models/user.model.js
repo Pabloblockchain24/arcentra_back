@@ -4,9 +4,19 @@ const userSchema = new mongoose.Schema(
   {
     email: String,
     password: String,
-    empresa: String,
+
+    // 🔥 ESTE ES EL IMPORTANTE
+clienteId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Client",
+  required: function () {
+    return this.tipoUsuario === "cliente";
+  },
+  index: true
+},
     nombre: String,
     apellido: String,
+
     tipoUsuario: {
       type: String,
       enum: ["admin", "cliente", "colaborador", "chofer", "operador"],
@@ -33,6 +43,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const userModel = mongoose.model("User", userSchema)
-
-export default userModel
+export default mongoose.model("User", userSchema);

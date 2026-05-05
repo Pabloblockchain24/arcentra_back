@@ -4,6 +4,8 @@ import cors from "cors";
 
 import formRoutes from "./routes/form.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import ContainerRoutes from "./routes/container.routes.js";
+import ClientRoutes from "./routes/client.routes.js";
 
 const app = express()
 app.use(express.json())
@@ -36,10 +38,7 @@ app.use(cors(corsOptions));
 // Rutas
 app.use("/api/send-mail", formRoutes);
 app.use("/api/auth", authRoutes);
-
-app.get("/api/test", (req, res) => {
-  res.json({ ok: true });
-});
-
+app.use("/api/containers", ContainerRoutes);
+app.use("/api/clients", ClientRoutes);
 
 export default app; 
