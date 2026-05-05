@@ -30,9 +30,11 @@ export const login = async (req, res) => {
     console.log("llegue aqui con lo siguiente email y password", email, password, "y esta es la variable de entorno", config.TOKEN_SECRET)
     try {
         const userFound = await userService.findOne({ email })
+        console.log("llegue aqui con lo siguiente userFound", userFound)
         if (!userFound) return res.status(401).json({ message: "Usuario no encontrado" })
         const isMatch = await bcrypt.compare(password, userFound.password)
         if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" })
+            console.log("llegue aqui con el siguiente isMatch", isMatch)
         jwt.sign(
             { id: userFound._id },
             config.TOKEN_SECRET,
