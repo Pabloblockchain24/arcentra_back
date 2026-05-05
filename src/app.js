@@ -36,5 +36,9 @@ app.options("*", cors());
 app.use("/api/send-mail", formRoutes);
 app.use("/api/auth", authRoutes);
 
+app.get("/api/test", (req, res) => {
+  res.json({ ok: true });
+});
+
 
 export default app; 
