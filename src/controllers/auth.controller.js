@@ -34,7 +34,7 @@ export const login = async (req, res) => {
         if (!userFound) return res.status(401).json({ message: "Usuario no encontrado" })
         const isMatch = await bcrypt.compare(password, userFound.password)
         if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" })
-            console.log("llegue aqui con el siguiente isMatch", isMatch)
+            console.log("llegue aqui con siguiente isMatch", isMatch)
         jwt.sign(
             { id: userFound._id },
             config.TOKEN_SECRET,
