@@ -38,6 +38,7 @@ export const login = async (req, res) => {
             { expiresIn: "1d" },
             (err, token) => {
                 if (err) {
+                    console.error("Error al generar el token:", err, "TOKEN_SECRET:", config.TOKEN_SECRET);
                     return res.status(500).json({ message: "Error al generar el token", error: err });
                 } else {
                     res.cookie("token", token, { sameSite: "none", secure: true }).json({data: {...userFound , token}});
