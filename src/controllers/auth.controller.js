@@ -10,7 +10,9 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const userFound = await userService.findOne({ email });
+    const userFound = await userService
+      .findOne({ email })
+      .populate("clienteId", "nombre");
 
     if (!userFound) {
       return res.status(401).json({ message: "Usuario no encontrado" });
@@ -33,13 +35,12 @@ export const login = async (req, res) => {
       expiresIn: "1d"
     });
 
-    // 🧼 LIMPIAR RESPUESTA (NO devolver objeto mongoose)
     const userResponse = {
       id: userFound._id,
       email: userFound.email,
       nombre: userFound.nombre,
       apellido: userFound.apellido,
-      empresa: userFound.empresa,
+      empresa: userFound.clienteId?.nombre || null,
       tipoUsuario: userFound.tipoUsuario,
       clienteId: userFound.clienteId
     };
