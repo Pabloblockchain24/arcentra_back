@@ -226,14 +226,12 @@ export const deleteContainer = async (req, res) => {
 export const searchContainers = async (req, res) => {
   try {
     const { clienteId, tipoUsuario } = req.user;
+    const { search } = req.query;
 
-    const {
-      unidad,
-      referencia,
-      estado,
-      fechaDesde,
-      fechaHasta
-    } = req.query;
+    // ❌ si no hay búsqueda → no devolvemos nada
+    if (!search || search.trim().length < 2) {
+      return res.json([]);
+    }
 
     let query = {
       isDeleted: { $ne: true }
@@ -244,92 +242,26 @@ export const searchContainers = async (req, res) => {
       query.clienteId = new mongoose.Types.ObjectId(clienteId);
     }
 
-    // 🔎 FILTROS DINÁMICOS
-    if (unidad) {
-      query.unidad = { $regex: unidad, $options: "i" };
-    }
+    // 🔎 SOLO BUSCAR POR UNIDAD (CONTENEDOR)
+    query.unidad = {
+      $regex: `^${search}`, // 🔥 empieza con (más rápido)
+      $options: "i"
+    };
 
-    if (referencia) {
-      query.referencia = { $regex: referencia, $options: "i" };
-    }
-
-    if (fechaDesde || fechaHasta) {
-      query.eta = {};
-
-      if (fechaDesde) {
-        query.eta.$gte = new Date(fechaDesde);
-      }
-
-      if (fechaHasta) {
-        query.eta.$lte = new Date(fechaHasta);
-      }
-    }
-
-    // 📦 1. containers
-    const containersDocs = await Container
+    const containers = await Container
       .find(query)
+      .limit(10) // 🚀 clave para performance
+      .sort({ createdAt: -1 })
       .populate("clienteId", "nombre")
-      .sort({ createdAt: -1 });
-
-    const containerIds = containersDocs.map(c => c._id);
-
-    // 📍 2. events
-    const events = await Event.find({
-      containerId: { $in: containerIds }
-    }).sort({ fecha: 1 });
-
-    // 💰 3. billing
-    const billing = await Billing.find({
-      containerId: { $in: containerIds }
-    });
-
-    // 🧠 4. maps
-    const eventsMap = {};
-    const billingMap = {};
-
-    events.forEach(e => {
-      const key = e.containerId.toString();
-      if (!eventsMap[key]) eventsMap[key] = [];
-      eventsMap[key].push(e);
-    });
-
-    billing.forEach(b => {
-      const key = b.containerId.toString();
-      if (!billingMap[key]) billingMap[key] = [];
-      billingMap[key].push(b);
-    });
-
-    // 🔥 5. construir respuesta
-    let containers = containersDocs.map(doc => {
-      const obj = doc.toObject();
-      delete obj.deposito;
-
-      const id = doc._id.toString();
-
-      const containerEvents = eventsMap[id] || [];
-      const containerBilling = billingMap[id] || [];
-
-      return {
-        ...obj,
-        events: containerEvents,
-        billing: containerBilling,
-        estado: calcularEstado(containerEvents),
-        resumenFinanciero: calcularFinanzas(containerBilling)
-      };
-    });
-
-    // 🔥 6. filtro por estado (post-procesado)
-    if (estado) {
-      containers = containers.filter(c => c.estado === estado);
-    }
+      .select("unidad tipoContenedor producto clienteId");
 
     res.json(containers);
 
   } catch (error) {
+    console.error("SEARCH ERROR:", error);
     res.status(500).json({ error: error.message });
   }
 };
-
 const calcularEstado = (events) => {
   if (!events.length) return "creado";
 
