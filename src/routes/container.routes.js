@@ -10,4 +10,6 @@ router.post("/create", createContainer)
 router.put("/update/:id", protect, updateContainer)
 router.delete("/delete/:id", protect, deleteContainer)
 
+router.get("/search", protect, searchContainers);
+
 export default router;

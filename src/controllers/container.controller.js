@@ -223,6 +223,112 @@ export const deleteContainer = async (req, res) => {
   }
 };
 
+export const searchContainers = async (req, res) => {
+  try {
+    const { clienteId, tipoUsuario } = req.user;
+
+    const {
+      unidad,
+      referencia,
+      estado,
+      fechaDesde,
+      fechaHasta
+    } = req.query;
+
+    let query = {
+      isDeleted: { $ne: true }
+    };
+
+    // 🔐 MULTI-TENANT
+    if (tipoUsuario === "cliente") {
+      query.clienteId = new mongoose.Types.ObjectId(clienteId);
+    }
+
+    // 🔎 FILTROS DINÁMICOS
+    if (unidad) {
+      query.unidad = { $regex: unidad, $options: "i" };
+    }
+
+    if (referencia) {
+      query.referencia = { $regex: referencia, $options: "i" };
+    }
+
+    if (fechaDesde || fechaHasta) {
+      query.eta = {};
+
+      if (fechaDesde) {
+        query.eta.$gte = new Date(fechaDesde);
+      }
+
+      if (fechaHasta) {
+        query.eta.$lte = new Date(fechaHasta);
+      }
+    }
+
+    // 📦 1. containers
+    const containersDocs = await Container
+      .find(query)
+      .populate("clienteId", "nombre")
+      .sort({ createdAt: -1 });
+
+    const containerIds = containersDocs.map(c => c._id);
+
+    // 📍 2. events
+    const events = await Event.find({
+      containerId: { $in: containerIds }
+    }).sort({ fecha: 1 });
+
+    // 💰 3. billing
+    const billing = await Billing.find({
+      containerId: { $in: containerIds }
+    });
+
+    // 🧠 4. maps
+    const eventsMap = {};
+    const billingMap = {};
+
+    events.forEach(e => {
+      const key = e.containerId.toString();
+      if (!eventsMap[key]) eventsMap[key] = [];
+      eventsMap[key].push(e);
+    });
+
+    billing.forEach(b => {
+      const key = b.containerId.toString();
+      if (!billingMap[key]) billingMap[key] = [];
+      billingMap[key].push(b);
+    });
+
+    // 🔥 5. construir respuesta
+    let containers = containersDocs.map(doc => {
+      const obj = doc.toObject();
+      delete obj.deposito;
+
+      const id = doc._id.toString();
+
+      const containerEvents = eventsMap[id] || [];
+      const containerBilling = billingMap[id] || [];
+
+      return {
+        ...obj,
+        events: containerEvents,
+        billing: containerBilling,
+        estado: calcularEstado(containerEvents),
+        resumenFinanciero: calcularFinanzas(containerBilling)
+      };
+    });
+
+    // 🔥 6. filtro por estado (post-procesado)
+    if (estado) {
+      containers = containers.filter(c => c.estado === estado);
+    }
+
+    res.json(containers);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 const calcularEstado = (events) => {
   if (!events.length) return "creado";
