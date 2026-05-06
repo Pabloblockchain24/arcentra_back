@@ -1,7 +1,7 @@
 import express, { Router } from "express";
 const router = express.Router();
 
-import { getContainerDetail, getContainers, createContainer, updateContainer, deleteContainer } from "../controllers/container.controller.js";
+import { getContainerDetail, getContainers, createContainer, updateContainer, deleteContainer, searchContainers } from "../controllers/container.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
 router.get("/:id", protect, getContainerDetail)
